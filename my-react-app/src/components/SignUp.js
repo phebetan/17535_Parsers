@@ -8,10 +8,12 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submitting form...");  // Check if this logs to the console
     try {
-      const res = await axios.post('/add_user', { userid, password });
+      const res = await axios.post('http://localhost:5000/add_user', { userid, password });
       alert(res.data.message);
     } catch (err) {
+      console.error(err);
       alert('Error signing up!');
     }
   };

@@ -3,20 +3,25 @@ from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 
+from flask_cors import CORS
+
 import usersDatabase
 import projectsDatabase
 import hardwareDatabase
 
+
+
 # Define the MongoDB connection string
-MONGODB_SERVER = "your_mongodb_connection_string_here"
+MONGODB_SERVER = "mongodb+srv://phebetan:test@projectdatabase.6wsrr.mongodb.net/?retryWrites=true&w=majority&appName=ProjectDatabase"
 
 # Initialize a new Flask web application
 app = Flask(__name__)
+CORS(app)  # This will allow all origins by default
 
 # Helper function to connect to MongoDB
 def get_db():
-    client = MongoClient(MONGODB_SERVER)
-    db = client['myDatabase']
+    client = MongoClient(MONGODB_SERVER, tls=True, tlsAllowInvalidCertificates=True)
+    db = client['ProjectDatabase']
     return db, client
 
 # Route for user login
@@ -68,8 +73,16 @@ def join_project():
 
 # Route for adding a new user
 @app.route('/add_user', methods=['POST'])
-def add_user():
+def add_user():  
     data = request.get_json()
+    try:
+        db, client = get_db()
+        # Attempt a simple operation like listing collections
+        print("Collections in ProjectDatabase:", db.list_collection_names())
+        client.close()
+        print("MongoDB connection successful!")
+    except Exception as e:
+        print("MongoDB connection failed:", e)
     userid = data.get('userid')
     password = data.get('password')
 
