@@ -1,6 +1,5 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
-
 import hardwareDatabase
 
 '''
@@ -15,8 +14,7 @@ Project = {
 '''
 
 # Function to query a project by its ID
-def queryProject(client, projectId):
-    db = client['myDatabase']
+def query_project(db, projectId):
     projects_collection = db['projects']
     
     project = projects_collection.find_one({'projectId': projectId})
@@ -28,32 +26,32 @@ def queryProject(client, projectId):
             'hwSets': project.get('hwSets', {}),
             'users': project.get('users', [])
         }
-    else:
-        return None
+    return None
 
 # Function to create a new project
-def createProject(client, projectName, projectId, description):
-    db = client['myDatabase']
+def create_project(db, projectName, projectId, description):
     projects_collection = db['projects']
-       
+    
+    # Check if the project already exists
     if projects_collection.find_one({'projectId': projectId}):
         return False  
 
+    # Insert a new project document
     new_project = {
         'projectName': projectName,
         'projectId': projectId,
         'description': description,
-        'hwSets': {},  
-        'users': []    
+        'hwSets': {},  # Initialize an empty hardware set
+        'users': []    # Initialize an empty user list
     }
     projects_collection.insert_one(new_project)
     return True
 
 # Function to add a user to a project
-def addUser(client, projectId, userId):
-    db = client['myDatabase']
+def add_user_to_project(db, projectId, userId):
     projects_collection = db['projects']
     
+    # Use $addToSet to ensure userId is only added once
     result = projects_collection.update_one(
         {'projectId': projectId},
         {'$addToSet': {'users': userId}}
@@ -62,55 +60,56 @@ def addUser(client, projectId, userId):
     return result.modified_count > 0
 
 # Function to update hardware usage in a project
-def updateUsage(client, projectId, hwSetName):
-    db = client['myDatabase']
+def update_usage(db, projectId, hwSetName, qty):
     projects_collection = db['projects']
-
+    
+    # Update the quantity of hardware in the specified project's hwSets
     result = projects_collection.update_one(
         {'projectId': projectId},
         {'$set': {f'hwSets.{hwSetName}': qty}}
     )
+    return result.modified_count > 0
 
 # Function to check out hardware for a project
-def checkOutHW(client, projectId, hwSetName, qty, userId):
-    db = client['myDatabase']
+def check_out_hw(db, projectId, hwSetName, qty, userId):
     projects_collection = db['projects']
    
     project = projects_collection.find_one({'projectId': projectId})
     if not project:
         return False 
 
-    
+    # Get the current hardware usage for the project
     current_usage = project.get('hwSets', {}).get(hwSetName, 0)
 
-    
-    hw_client = client
-    if hardwareDatabase.requestSpace(hw_client, hwSetName, qty):
+    # Check with hardwareDatabase if the requested quantity is available
+    if hardwareDatabase.request_space(db, hwSetName, qty):
+        # Update the new hardware usage in the project
         new_usage = current_usage + qty
-        updateUsage(client, projectId, hwSetName, new_usage)
+        update_usage(db, projectId, hwSetName, new_usage)
         return True
     else:
         return False
 
 # Function to check in hardware for a project
-def checkInHW(client, projectId, hwSetName, qty, userId):
-    db = client['myDatabase']
+def check_in_hw(db, projectId, hwSetName, qty, userId):
     projects_collection = db['projects']
     
     project = projects_collection.find_one({'projectId': projectId})
     if not project:
         return False  
 
+    # Get the current hardware usage for the project
     current_usage = project.get('hwSets', {}).get(hwSetName, 0)
 
+    # Ensure the quantity being checked in does not exceed current usage
     if current_usage < qty:
         return False  
 
-    hw_client = client
+    # Update availability in hardwareDatabase
     new_availability = current_usage - qty
-    hardwareDatabase.updateAvailability(hw_client, hwSetName, new_availability)
+    hardwareDatabase.update_availability(db, hwSetName, new_availability)
 
+    # Update the new hardware usage in the project
     new_usage = current_usage - qty
-    updateUsage(client, projectId, hwSetName, new_usage)
+    update_usage(db, projectId, hwSetName, new_usage)
     return True  
-

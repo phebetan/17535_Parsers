@@ -7,7 +7,7 @@ const HardwareManagement = () => {
   useEffect(() => {
     const fetchHwSets = async () => {
       try {
-        const res = await axios.post('/get_all_hw_names');
+        const res = await axios.post('http://localhost:5000/get_all_hw_names');
         setHwSets(res.data.hardware_names);
       } catch (err) {
         alert('Error fetching hardware sets!');

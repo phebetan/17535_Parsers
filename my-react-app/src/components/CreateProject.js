@@ -9,7 +9,7 @@ const CreateProject = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/create_project', { name, description, projectID });
+      const res = await axios.post('http://localhost:5000/create_project', { name, description, projectID });
       alert(res.data.message);
     } catch (err) {
       alert('Error creating project!');

@@ -11,14 +11,14 @@ HardwareSet = {
 '''
 
 # Function to create a new hardware set
-def createHardwareSet(client, hwSetName, initCapacity):
-    db = client['myDatabase']
+def create_hardware_set(db, hwSetName, initCapacity):
     hardware_collection = db['hardwareSets']
-
     
+    # Check if the hardware set already exists
     if hardware_collection.find_one({'hwName': hwSetName}):
         return False  
 
+    # Insert a new hardware set document
     new_hw_set = {
         'hwName': hwSetName,
         'capacity': initCapacity,
@@ -28,10 +28,10 @@ def createHardwareSet(client, hwSetName, initCapacity):
     return True  
 
 # Function to query a hardware set by its name
-def queryHardwareSet(client, hwSetName):
-    db = client['myDatabase']
+def query_hardware_set(db, hwSetName):
     hardware_collection = db['hardwareSets']
 
+    # Find and return the hardware set document
     hardware_set = hardware_collection.find_one({'hwName': hwSetName})
     if hardware_set:
         return {
@@ -39,12 +39,10 @@ def queryHardwareSet(client, hwSetName):
             'capacity': hardware_set['capacity'],
             'availability': hardware_set['availability']
         }
-    else:
-        return None
+    return None
 
 # Function to update the availability of a hardware set
-def updateAvailability(client, hwSetName, newAvailability):
-    db = client['myDatabase']
+def update_availability(db, hwSetName, newAvailability):
     hardware_collection = db['hardwareSets']
 
     # Update the availability of an existing hardware set
@@ -53,11 +51,10 @@ def updateAvailability(client, hwSetName, newAvailability):
         {'$set': {'availability': newAvailability}}
     )
 
-    return result.modified_count > 0  # Returns True if update was successful
+    return result.modified_count > 0  # Returns True if the update was successful
 
 # Function to request space from a hardware set
-def requestSpace(client, hwSetName, amount):
-    db = client['myDatabase']
+def request_space(db, hwSetName, amount):
     hardware_collection = db['hardwareSets']
     hardware_set = hardware_collection.find_one({'hwName': hwSetName})
 
@@ -66,20 +63,18 @@ def requestSpace(client, hwSetName, amount):
 
     current_availability = hardware_set['availability']
 
+    # Check if the requested amount is available
     if current_availability >= amount:
-        
+        # Update the hardware set availability
         new_availability = current_availability - amount
-        updateAvailability(client, hwSetName, new_availability)
+        update_availability(db, hwSetName, new_availability)
         return True
-    else:
-        return False
+    return False
 
 # Function to get all hardware set names
-def getAllHwNames(client):
-    db = client['myDatabase']
+def get_all_hardware_names(db):
     hardware_collection = db['hardwareSets']
 
-    # Get and return a list of all hardware set names
+    # Retrieve and return a list of all hardware set names
     hw_names = hardware_collection.find({}, {'_id': 0, 'hwName': 1})
     return [hw['hwName'] for hw in hw_names]
-
