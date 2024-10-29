@@ -4,12 +4,12 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
+            "name": "Debugging Frontend",
             "url": "http://localhost:3000",
             "webRoot": "${workspaceFolder}"
         },
         {
-            "name": "Python: Flask",
+            "name": "Debugging Backend",
             "type": "python",
             "request": "launch",
             "module": "flask",
