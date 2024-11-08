@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { UserContext } from '../contexts/UserContext';
 import './Login.css';
 
 const Login = () => {
   const [userid, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const { setUserid } = useContext(UserContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await axios.post('http://localhost:5000/login', { userid, password });
-      alert(res.data.message);
+      if (res.data.message === 'Login successful!') {
+        setUserid(userid); // Save userid in context
+        alert(res.data.message);
+      } else {
+        alert('Invalid credentials!');
+      }
     } catch (err) {
-      alert('Invalid credentials!');
+      alert('Login failed!');
     }
   };
 

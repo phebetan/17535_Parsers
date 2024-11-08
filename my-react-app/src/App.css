@@ -23,7 +23,8 @@ body {
   margin-bottom: 20px;
 }
 
-.card h2 {
+.card h2,
+.card h3 {
   color: #007bff;
   margin-bottom: 20px;
 }
@@ -98,23 +99,49 @@ body {
 
 /* List Group Styling */
 .list-group-item {
-  border: none;
-  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: #f8f9fa;
+  /* Light gray background */
+  border: none;
+  padding: 15px 20px;
   border-radius: 5px;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
 }
 
 .list-group-item:hover {
   background-color: #e9ecef;
+  /* Slightly darker on hover */
 }
 
+/* Styling for Select Project Button */
+.btn-outline-primary {
+  border-color: #007bff;
+  color: #007bff;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.btn-outline-primary:hover {
+  background-color: #007bff;
+  color: #ffffff;
+}
+
+/* Utility Classes for Spacing */
 .text-center {
   text-align: center;
 }
 
 .mt-3 {
   margin-top: 1rem;
+}
+
+.mt-4 {
+  margin-top: 1.5rem;
 }
 
 .mb-4 {
