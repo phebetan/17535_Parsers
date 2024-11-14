@@ -28,7 +28,7 @@ def create_hardware_set(db, hwSetName, initCapacity):
     return True  
 
 # Function to query a hardware set by its name
-def query_hardware_set(db, hwSetName):
+def get_hardware_info(db, hwSetName):
     hardware_collection = db['hardwareSets']
 
     # Find and return the hardware set document

@@ -2,7 +2,6 @@
 from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-
 from flask_cors import CORS
 
 import usersDatabase
@@ -144,6 +143,7 @@ def get_project_info():
 def get_all_hw_names():
     db, client = get_db()
     hw_names = hardwareDatabase.get_all_hardware_names(db)
+    print(hw_names)
     client.close()
 
     return jsonify({'hardware_names': hw_names})
@@ -172,7 +172,7 @@ def check_out():
     quantity = data.get('quantity')
 
     db, client = get_db()
-    success = projectsDatabase.check_out_hardware(db, projectID, hw_name, quantity)
+    success = projectsDatabase.update_usage(db, projectID, hw_name, quantity)
     client.close()
 
     if success:

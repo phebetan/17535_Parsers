@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const HardwareManagement = ({ projectID }) => {
+const HardwareManagement = () => {
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectID, setSelectedProjectID] = useState(null);
   const [hwSets, setHwSets] = useState([]);
   const [checkoutQuantities, setCheckoutQuantities] = useState({});
   const [checkinQuantities, setCheckinQuantities] = useState({});
+
+  // Fetch projects on component mount
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await axios.post('http://localhost:5000/get_user_projects_list');
+        setProjects(res.data.projects);
+        if (res.data.projects.length > 0) {
+          setSelectedProjectID(res.data.projects[0].id); // Set default project
+        }
+      } catch (err) {
+        alert('Error fetching projects!');
+      }
+    };
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     const fetchHwSets = async () => {
@@ -43,7 +61,7 @@ const HardwareManagement = ({ projectID }) => {
   const handleCheckout = async (hwName) => {
     const quantity = parseInt(checkoutQuantities[hwName], 10);
     try {
-      const res = await axios.post('http://localhost:5000/check_out', { projectID, hw_name: hwName, quantity });
+      const res = await axios.post('http://localhost:5000/check_out', { projectID: selectedProjectID, hw_name: hwName, quantity });
       if (res.data.message === 'Hardware checked out successfully!') {
         alert(`Checked out ${quantity} of ${hwName}`);
         setHwSets((prev) => prev.map((hw) => (hw.hwName === hwName ? { ...hw, availability: hw.availability - quantity } : hw)));
@@ -57,7 +75,7 @@ const HardwareManagement = ({ projectID }) => {
   const handleCheckin = async (hwName) => {
     const quantity = parseInt(checkinQuantities[hwName], 10);
     try {
-      const res = await axios.post('http://localhost:5000/check_in', { projectID, hw_name: hwName, quantity });
+      const res = await axios.post('http://localhost:5000/check_in', { projectID: selectedProjectID, hw_name: hwName, quantity });
       if (res.data.message === 'Hardware checked in successfully!') {
         alert(`Checked in ${quantity} of ${hwName}`);
         setHwSets((prev) => prev.map((hw) => (hw.hwName === hwName ? { ...hw, availability: hw.availability + quantity } : hw)));
@@ -71,6 +89,21 @@ const HardwareManagement = ({ projectID }) => {
   return (
     <div className="card p-4">
       <h2 className="mb-4">Hardware Management</h2>
+      <div className="mb-3">
+        <label htmlFor="projectDropdown" className="form-label">Select Project:</label>
+        <select
+          id="projectDropdown"
+          className="form-select"
+          value={selectedProjectID}
+          onChange={(e) => setSelectedProjectID(e.target.value)}
+        >
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <table className="table">
         <thead>
           <tr>
