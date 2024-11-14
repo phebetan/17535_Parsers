@@ -69,3 +69,11 @@ def get_user_projects(db, userid):
     if user:
         return user.get("projects", [])
     return None  # User not found or has no projects
+
+def set_user_logged_in(db, userid, status=True):
+    user_collection = db['users']
+    user_collection.update_one({'userid': userid}, {'$set': {'loggedIn': status}})
+    
+def is_user_logged_in(db, userid):
+    user = __queryUser(db, userid)
+    return user and user.get("loggedIn", False)
