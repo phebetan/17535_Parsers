@@ -1,50 +1,69 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './Login.css';  // Reuse the same CSS for consistency
+import './SignUp.css';
 
 const SignUp = () => {
-  const [userid, setUserId] = useState('');
+  const [userid, setUserid] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    console.log("Submitting form...");  // Check if this logs to the console
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+
     try {
-      const res = await axios.post('http://localhost:5000/add_user', { userid, password });
-      alert(res.data.message);
+      const res = await axios.post('http://localhost:5000/add_user', {
+        userid,
+        password,
+      });
+
+      if (res.data.message === 'User created successfully!') {
+        alert('Account created! Redirecting to login.');
+        navigate('/login'); // Redirect to login after successful signup
+      } else {
+        alert(res.data.message || 'Sign up failed.');
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error during sign up:', err);
       alert('Error signing up!');
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Create an Account</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>UserID</label>
-            <input
-              type="text"
-              className="form-control"
-              value={userid}
-              onChange={(e) => setUserId(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-login">Sign Up</button>
-        </form>
+    <div className="signup-container">
+      <h2 className="signup-title">Sign Up</h2>
+      <form onSubmit={handleSignUp}>
+        <input
+          type="text"
+          placeholder="User ID"
+          value={userid}
+          onChange={(e) => setUserid(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+        <button type="submit" className="btn-signup">Sign Up</button>
+      </form>
+      <div className="login-link">
+        <p>Already have an account? <span onClick={() => navigate('/login')} className="link">Login</span></p>
       </div>
     </div>
   );
