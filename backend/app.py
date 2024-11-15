@@ -174,11 +174,17 @@ def get_project_info():
 @app.route('/get_all_hw_names', methods=['POST'])
 def get_all_hw_names():
     db, client = get_db()
-    hw_names = hardwareDatabase.get_all_hardware_names(db)
-    print(hw_names)
-    client.close()
+    try:
+        hw_names = hardwareDatabase.get_all_hardware_names(db)
+        print("Fetched hardware names:", hw_names)  # Debug log
+    except Exception as e:
+        print("Error fetching hardware names:", e)
+        hw_names = []
+    finally:
+        client.close()
 
     return jsonify({'hardware_names': hw_names})
+
 
 # Route for getting hardware information
 @app.route('/get_hw_info', methods=['POST'])
@@ -191,26 +197,42 @@ def get_hw_info():
     client.close()
 
     if hw_info:
+        print(f"hw_info being returned: {hw_info}")  # Log the actual response
         return jsonify(hw_info)
     else:
         return jsonify({'message': 'Hardware not found!'}), 404
-
 # Route for checking out hardware
 @app.route('/check_out', methods=['POST'])
 def check_out():
     data = request.get_json()
     projectID = data.get('projectID')
     hw_name = data.get('hw_name')
-    quantity = data.get('quantity')
+    quantity = data.get('quantity')  # Quantity of hardware to check out
+
+    if not all([projectID, hw_name, quantity]):
+        return jsonify({'message': 'Missing required fields!'}), 400
 
     db, client = get_db()
-    success = projectsDatabase.update_usage(db, projectID, hw_name, quantity)
-    client.close()
+    try:
+        # Step 1: Update hardware usage in the project
+        success_project = projectsDatabase.update_usage(db, projectID, hw_name, quantity)
 
-    if success:
-        return jsonify({'message': 'Hardware checked out successfully!'})
-    else:
-        return jsonify({'message': 'Failed to check out hardware!'}), 400
+        # Step 2: Update the hardware availability in hardwareDatabase
+        success_hardware = hardwareDatabase.checkout_hardware(db, hw_name, quantity)
+
+        if success_project and success_hardware:
+            return jsonify({'message': 'Hardware checked out successfully!'})
+        else:
+            # Rollback logic can be added here for failure handling
+            return jsonify({'message': 'Failed to check out hardware!'}), 400
+
+    except Exception as e:
+        print(f"Error in check_out: {e}")
+        return jsonify({'message': 'Internal server error!'}), 500
+
+    finally:
+        client.close()
+
 
 # Route for checking in hardware
 @app.route('/check_in', methods=['POST'])
@@ -218,16 +240,32 @@ def check_in():
     data = request.get_json()
     projectID = data.get('projectID')
     hw_name = data.get('hw_name')
-    quantity = data.get('quantity')
+    quantity = data.get('quantity')  # Quantity of hardware to check in
+
+    if not all([projectID, hw_name, quantity]):
+        return jsonify({'message': 'Missing required fields!'}), 400
 
     db, client = get_db()
-    success = projectsDatabase.check_in_hardware(db, projectID, hw_name, quantity)
-    client.close()
+    try:
+        # Step 1: Update hardware usage in the project
+        success_project = projectsDatabase.reduce_usage(db, projectID, hw_name, quantity)
 
-    if success:
-        return jsonify({'message': 'Hardware checked in successfully!'})
-    else:
-        return jsonify({'message': 'Failed to check in hardware!'}), 400
+        # Step 2: Update the hardware availability in hardwareDatabase
+        success_hardware = hardwareDatabase.checkin_hardware(db, hw_name, quantity)
+
+        if success_project and success_hardware:
+            return jsonify({'message': 'Hardware checked in successfully!'})
+        else:
+            # Rollback logic can be added here for failure handling
+            return jsonify({'message': 'Failed to check in hardware!'}), 400
+
+    except Exception as e:
+        print(f"Error in check_in: {e}")
+        return jsonify({'message': 'Internal server error!'}), 500
+
+    finally:
+        client.close()
+
 
 # Route for creating a new hardware set
 @app.route('/create_hardware_set', methods=['POST'])

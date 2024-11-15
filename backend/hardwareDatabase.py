@@ -40,36 +40,42 @@ def get_hardware_info(db, hwSetName):
             'availability': hardware_set['availability']
         }
     return None
-
-# Function to update the availability of a hardware set
-def update_availability(db, hwSetName, newAvailability):
+# Function to check out hardware units
+def checkout_hardware(db, hwSetName, quantity):
     hardware_collection = db['hardwareSets']
 
-    # Update the availability of an existing hardware set
+    # Atomically decrease availability if enough units are available
     result = hardware_collection.update_one(
-        {'hwName': hwSetName},
-        {'$set': {'availability': newAvailability}}
+        {
+            'hwName': hwSetName,
+            'availability': {'$gte': quantity}  # Ensure enough units are available
+        },
+        {
+            '$inc': {'availability': -quantity}  # Decrease availability
+        }
     )
 
-    return result.modified_count > 0  # Returns True if the update was successful
+    return result.modified_count > 0  # Return True if update was successful
 
-# Function to request space from a hardware set
-def request_space(db, hwSetName, amount):
+# Function to check in hardware units
+def checkin_hardware(db, hwSetName, quantity):
     hardware_collection = db['hardwareSets']
-    hardware_set = hardware_collection.find_one({'hwName': hwSetName})
 
-    if not hardware_set:
-        return False 
+    # Atomically increase availability but ensure it doesn't exceed capacity
+    result = hardware_collection.update_one(
+        {
+            'hwName': hwSetName,
+            '$expr': {'$lte': ['$availability', {'$subtract': ['$capacity', quantity]}]}  # Ensure within capacity
+        },
+        {
+            '$inc': {'availability': quantity}  # Increase availability
+        }
+    )
 
-    current_availability = hardware_set['availability']
+    return result.modified_count > 0  # Return True if update was successful
 
-    # Check if the requested amount is available
-    if current_availability >= amount:
-        # Update the hardware set availability
-        new_availability = current_availability - amount
-        update_availability(db, hwSetName, new_availability)
-        return True
-    return False
+
+
 
 # Function to get all hardware set names
 def get_all_hardware_names(db):
