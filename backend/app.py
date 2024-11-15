@@ -54,21 +54,31 @@ def mainPage():
     else:
         return jsonify({'message': 'User not found!'}), 404
 
-# Route for joining a project
 @app.route('/join_project', methods=['POST'])
 def join_project():
     data = request.get_json()
-    userid = data.get('userid')
-    projectID = data.get('projectID')
+    print("Received data:", data)  # Debugging log
 
+    # Extract userid and projectId from the data
+    userid = data.get('userid')
+    projectId = data.get('projectId')  # Consistent naming with lowercase 'd'
+    print(f"userid: {userid}, projectId: {projectId}")  # Debugging log
+
+    # Check if userid and projectId are provided
+    if not userid or not projectId:
+        return jsonify({'message': 'Missing userid or projectId'}), 400
+
+    # Attempt to join the project
     db, client = get_db()
-    success = usersDatabase.join_project(db, userid, projectID)
+    success = usersDatabase.join_project(db, userid, projectId)
     client.close()
 
     if success:
         return jsonify({'message': 'Joined project successfully!'})
     else:
+        print("Join project operation failed in usersDatabase.join_project")  # Debugging log
         return jsonify({'message': 'Failed to join project!'}), 400
+
 
 # Route for adding a new user
 @app.route('/add_user', methods=['POST'])
@@ -93,6 +103,15 @@ def add_user():
         return jsonify({'message': 'User added successfully!'})
     else:
         return jsonify({'message': 'User already exists!'}), 400
+
+# Flask example for an endpoint that fetches all projects
+@app.route('/get_all_projects', methods=['GET'])
+def get_all_projects():
+    db, client = get_db()
+    projects = projectsDatabase.get_all_projects(db)
+    client.close()
+
+    return jsonify({'projects': projects})
 
 # Route for getting the list of user projects
 @app.route('/get_user_projects_list', methods=['POST'])

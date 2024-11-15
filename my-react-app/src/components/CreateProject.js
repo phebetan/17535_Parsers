@@ -1,50 +1,88 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { UserContext } from '../contexts/UserContext';
+import { useNavigate } from 'react-router-dom';
 
 const CreateProject = ({ onProjectSelect }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [projectID, setProjectID] = useState('');
-  const [existingProjects, setExistingProjects] = useState([]);
-  const { userid } = useContext(UserContext);
+  const [projectId, setProjectId] = useState('');
+  const [allProjects, setAllProjects] = useState([]); // Store all projects
+  const { userid } = useContext(UserContext); // Assuming userid is provided in UserContext
+  const navigate = useNavigate();
 
-  // State for manually inputted project ID for selection
-  const [manualProjectID, setManualProjectID] = useState('');
+  const [manualProjectId, setManualProjectId] = useState('');
 
+  // Fetch all projects from the backend
+  const fetchAllProjects = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/get_all_projects');
+      console.log("Fetched projects:", res.data.projects); // Log to verify structure
+      setAllProjects(res.data.projects); // Set all projects with correct structure
+    } catch (err) {
+      console.error('Error fetching all projects:', err);
+      alert('Error fetching all projects!');
+    }
+  };
+
+  // Fetch projects on component mount
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const res = await axios.post('http://localhost:5000/get_user_projects_list', { userid });
-        setExistingProjects(res.data.projects);
-      } catch (err) {
-        alert('Error fetching projects!');
-      }
-    };
-    if (userid) fetchProjects();
+    if (userid) {
+      fetchAllProjects();
+    }
   }, [userid]);
 
+  // Handle creating a new project
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/create_project', { name, description, projectID });
+      const res = await axios.post('http://localhost:5000/create_project', {
+        projectName: name,
+        description: description,
+        projectId: projectId
+      });
+
       if (res.data.message === 'Project created successfully!') {
-        setExistingProjects([...existingProjects, { projectID, name, description }]);
+        fetchAllProjects(); // Refresh the project list
         setName('');
         setDescription('');
-        setProjectID('');
+        setProjectId('');
         alert('Project created successfully!');
       } else {
         alert(res.data.message);
       }
     } catch (err) {
+      console.error('Error creating project:', err);
       alert('Error creating project!');
     }
   };
 
-  const handleProjectSelect = (id) => {
-    onProjectSelect(id); // Pass selected projectID to parent component
+  // Handle selecting a project
+  const handleProjectSelect = async (project) => {
+    try {
+      console.log("Sending data to join project:", {
+        userid: userid,
+        projectId: project.projectId
+      });  // Log payload data
+  
+      const res = await axios.post('http://localhost:5000/join_project', {
+        userid: userid,
+        projectId: project.projectId
+      });
+  
+      if (res.data.message === 'Joined project successfully!') {
+        onProjectSelect(project);
+        alert(`Successfully joined project: "${project.projectName}"`);
+        navigate('/project-details');
+      } else {
+        alert('Failed to join project.');
+      }
+    } catch (err) {
+      console.error('Error joining project:', err);
+      alert('Error joining project!');
+    }
   };
+  
 
   return (
     <div className="card p-4">
@@ -77,29 +115,33 @@ const CreateProject = ({ onProjectSelect }) => {
           <input
             type="text"
             className="form-control"
-            value={projectID}
-            onChange={(e) => setProjectID(e.target.value)}
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
             required
           />
         </div>
         <button type="submit" className="btn btn-primary mt-3">Create Project</button>
       </form>
 
-      {/* List of existing projects */}
+      {/* List of all projects */}
       <div className="mt-4">
         <h3>Or Select an Existing Project</h3>
         <ul className="list-group mt-2">
-          {existingProjects.map((project) => (
-            <li key={project.projectID} className="list-group-item d-flex justify-content-between align-items-center">
-              <span>{project.name} - {project.description}</span>
-              <button
-                className="btn btn-outline-primary btn-sm"
-                onClick={() => handleProjectSelect(project.projectID)}
-              >
-                Select Project
-              </button>
-            </li>
-          ))}
+          {allProjects.length === 0 ? (
+            <li className="list-group-item">No projects available.</li>
+          ) : (
+            allProjects.map((project) => (
+              <li key={project.projectId} className="list-group-item d-flex justify-content-between align-items-center">
+                <span>{project.projectName} - {project.description}</span>
+                <button
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => handleProjectSelect(project)} // Pass the project object here
+                >
+                  Select Project
+                </button>
+              </li>
+            ))
+          )}
         </ul>
       </div>
 
@@ -109,14 +151,14 @@ const CreateProject = ({ onProjectSelect }) => {
         <input
           type="text"
           className="form-control"
-          value={manualProjectID}
-          onChange={(e) => setManualProjectID(e.target.value)}
+          value={manualProjectId}
+          onChange={(e) => setManualProjectId(e.target.value)}
           placeholder="Enter Project ID"
         />
         <button
           className="btn btn-outline-primary mt-2"
-          onClick={() => handleProjectSelect(manualProjectID)}
-          disabled={!manualProjectID.trim()} // Disable button if input is empty
+          onClick={() => handleProjectSelect({ projectId: manualProjectId })}
+          disabled={!manualProjectId.trim()}
         >
           Select Project by ID
         </button>

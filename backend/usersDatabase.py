@@ -45,22 +45,38 @@ def login_user(db, userid, password):
         return True  # Login successful
     return False  # Login failed
 
-# Function to add a user to a project
-def join_project(db, userid, projectId):
-    # Add a user to a specified project
-    user_collection = db['users']
-    user = user_collection.find_one({"userid": userid})
+# usersDatabase.py
+def join_project(db, userid, projectID):
+    try:
+        # Check that `projectID` exists in the projects collection
+        project = db.projects.find_one({"projectId": projectID})
+        if not project:
+            print(f"Project with ID {projectID} not found!")  # Improved debugging log
+            return False
 
-    if user:
-        # Check if the user is already part of the project
-        if projectId not in user.get("projects", []):
-            # Update the user's project list to include the new project
-            user_collection.update_one(
-                {"userid": userid},
-                {"$push": {"projects": projectId}}
-            )
-            return True  # Joined project successfully
-    return False  # Failed to join project or already a member
+        # Check that `userid` exists in the users collection
+        user = db.users.find_one({"userid": userid})
+        if not user:
+            print(f"User with ID {userid} not found!")  # Improved debugging log
+            return False
+
+        # Update the user's project list to include this project
+        result = db.users.update_one(
+            {"userid": userid},
+            {"$addToSet": {"projects": projectID}}  # Adds to the set to avoid duplicates
+        )
+
+        # Check if the update modified a document
+        if result.modified_count == 1:
+            print(f"User {userid} successfully joined project {projectID}")
+            return True
+        else:
+            print(f"User {userid} already in project {projectID} or update failed")
+            return False
+    except Exception as e:
+        print(f"Error in join_project: {e}")
+        return False
+
 
 # Function to get the list of projects for a user
 def get_user_projects(db, userid):

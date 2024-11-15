@@ -13,6 +13,13 @@ Project = {
 }
 '''
 
+
+# Function to get all projects
+def get_all_projects(db):
+    projects_collection = db['projects']
+    projects = projects_collection.find({}, {'_id': False})
+    return list(projects)
+
 # Function to query a project by its ID
 def query_project(db, projectId):
     projects_collection = db['projects']
