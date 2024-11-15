@@ -73,7 +73,7 @@ const CreateProject = ({ onProjectSelect }) => {
       if (res.data.message === 'Joined project successfully!') {
         onProjectSelect(project);
         alert(`Successfully joined project: "${project.projectName}"`);
-        navigate('/project-details');
+        //navigate('/project-details');
       } else {
         alert('Failed to join project.');
       }
@@ -132,7 +132,7 @@ const CreateProject = ({ onProjectSelect }) => {
           ) : (
             allProjects.map((project) => (
               <li key={project.projectId} className="list-group-item d-flex justify-content-between align-items-center">
-                <span>{project.projectName} - {project.description}</span>
+                <span>{project.projectId} - {project.description}</span>
                 <button
                   className="btn btn-outline-primary btn-sm"
                   onClick={() => handleProjectSelect(project)} // Pass the project object here

@@ -78,13 +78,25 @@ def join_project(db, userid, projectID):
         return False
 
 
-# Function to get the list of projects for a user
 def get_user_projects(db, userid):
-    # Get and return the list of projects a user is part of
+    # Find the user document
     user = __queryUser(db, userid)
-    if user:
-        return user.get("projects", [])
-    return None  # User not found or has no projects
+    if not user:
+        return None  # User not found
+
+    # Extract project IDs the user is part of
+    project_ids = user.get("projects", [])
+    if not project_ids:
+        return []  # No projects for this user
+
+    # Query the projects collection to get details for each project
+    projects_collection = db['projects']
+    projects = projects_collection.find(
+        {"projectId": {"$in": project_ids}},  # Find projects matching these IDs
+        {"_id": 0, "projectId": 1, "projectName": 1}  # Exclude MongoDB's _id, only return projectId and projectName
+    )
+    return list(projects)
+
 
 # Function to set the login status of a user in the database
 def set_user_logged_in(db, userid, status=True):

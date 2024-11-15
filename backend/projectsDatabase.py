@@ -77,6 +77,20 @@ def update_usage(db, projectId, hwSetName, qty):
     )
     return result.modified_count > 0
 
+#Function to add userid to the users array in the project
+def join_project(db, projectId, userId):
+    projects_collection = db['projects']
+    
+    # Update the project document by adding the userId to the users array if it doesn't already exist
+    result = projects_collection.update_one(
+        {'projectId': projectId},
+        {'$addToSet': {'users': userId}}
+    )
+    
+    # Return True if the user was added, otherwise False (if no document was modified)
+    return result.modified_count > 0
+
+
 # Function to check out hardware for a project
 def check_out_hw(db, projectId, hwSetName, qty, userId):
     projects_collection = db['projects']

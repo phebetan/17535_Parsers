@@ -70,7 +70,7 @@ def join_project():
 
     # Attempt to join the project
     db, client = get_db()
-    success = usersDatabase.join_project(db, userid, projectId)
+    success = (usersDatabase.join_project(db, userid, projectId) & projectsDatabase.add_user_to_project(db, projectId, userid)); 
     client.close()
 
     if success:
@@ -113,28 +113,41 @@ def get_all_projects():
 
     return jsonify({'projects': projects})
 
-# Route for getting the list of user projects
+# Route for getting a user's projects list
 @app.route('/get_user_projects_list', methods=['POST'])
 def get_user_projects_list():
     data = request.get_json()
     userid = data.get('userid')
 
+    # Validate input
+    if not userid:
+        return jsonify({'message': 'User ID is required'}), 400
+
     db, client = get_db()
-    user_projects = usersDatabase.get_user_projects(db, userid)
-    client.close()
+    try:
+        # Retrieve the user's projects with detailed information
+        user_projects = usersDatabase.get_user_projects(db, userid)
+        print("Retrieved projects:", user_projects)  # Debug log
+    except Exception as e:
+        print(f"Error fetching user projects: {e}")
+        return jsonify({'message': 'Error fetching user projects'}), 500
+    finally:
+        client.close()
 
     return jsonify({'projects': user_projects})
+
+
 
 # Route for creating a new project
 @app.route('/create_project', methods=['POST'])
 def create_project():
     data = request.get_json()
-    project_name = data.get('name')
+    project_name = data.get('projectName')
     description = data.get('description')
-    projectID = data.get('projectID')
+    projectID = data.get('projectId')
 
     db, client = get_db()
-    success = projectsDatabase.create_project(db, project_name, description, projectID)
+    success = projectsDatabase.create_project(db, project_name, projectID, description)
     client.close()
 
     if success:
