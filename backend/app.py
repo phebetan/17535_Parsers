@@ -155,6 +155,35 @@ def create_project():
     else:
         return jsonify({'message': 'Failed to create project!'}), 400
 
+# Function to get hardware usage for a project
+# Function to get hardware usage for a project
+@app.route('/get_project_hw_usage', methods=['POST'])
+def get_project_hw_usage():
+    data = request.get_json()
+    projectId = data.get('projectId')  # Extract project ID from the request
+
+    if not projectId:
+        return jsonify({'message': 'Project ID is required!'}), 400
+
+    db, client = get_db()
+
+    try:
+        # Query the project by its ID
+        project = db['projects'].find_one({'projectId': projectId}, {'_id': 0, 'hwSets': 1})
+        if not project:
+            return jsonify({'message': 'Project not found!'}), 404
+
+        # Return the hwSets for the project
+        hw_usage = project.get('hwSets', {})
+        return jsonify({'hwSets': hw_usage})
+    except Exception as e:
+        print(f"Error fetching project hardware usage: {e}")
+        return jsonify({'message': 'Error fetching project hardware usage!'}), 500
+    finally:
+        client.close()
+
+
+
 # Route for getting project information
 @app.route('/get_project_info', methods=['POST'])
 def get_project_info():

@@ -34,25 +34,31 @@ def query_project(db, projectId):
             'users': project.get('users', [])
         }
     return None
-
+    
 # Function to create a new project
 def create_project(db, projectName, projectId, description):
     projects_collection = db['projects']
+    hardware_collection = db['hardwareSets']  # Access the hardware sets collection
     
     # Check if the project already exists
     if projects_collection.find_one({'projectId': projectId}):
         return False  
+
+    # Fetch all hardware sets to initialize the project's hwSets
+    hw_sets_cursor = hardware_collection.find({}, {'_id': 0, 'hwName': 1})
+    hw_sets = {hw['hwName']: 0 for hw in hw_sets_cursor}  # Set initial quantity to 0 for each HWSet
 
     # Insert a new project document
     new_project = {
         'projectName': projectName,
         'projectId': projectId,
         'description': description,
-        'hwSets': {},  # Initialize an empty hardware set
-        'users': []    # Initialize an empty user list
+        'hwSets': hw_sets,  # Populate hwSets with all hardware sets initialized to 0
+        'users': []         # Initialize an empty user list
     }
     projects_collection.insert_one(new_project)
     return True
+
 
 # Function to add a user to a project
 def add_user_to_project(db, projectId, userId):

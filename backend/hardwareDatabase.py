@@ -75,6 +75,16 @@ def checkin_hardware(db, hwSetName, quantity):
     return result.modified_count > 0  # Return True if update was successful
 
 
+# Function to get hardware usage for a project
+def get_project_hw_usage(db, project_id):
+    projects_collection = db['projects']
+
+    # Find the project by projectId
+    project = projects_collection.find_one({'projectId': project_id}, {'_id': 0, 'hwSets': 1})
+
+    if project and 'hwSets' in project:
+        return project['hwSets']  # Return the hwSets dictionary
+    return None  # Project not found or no hwSets
 
 
 # Function to get all hardware set names

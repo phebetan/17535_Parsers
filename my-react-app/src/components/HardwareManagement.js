@@ -8,6 +8,7 @@ const HardwareManagement = () => {
   const [hwSets, setHwSets] = useState([]);
   const [checkoutQuantities, setCheckoutQuantities] = useState({});
   const [checkinQuantities, setCheckinQuantities] = useState({});
+  const [projectHwUsage, setProjectHwUsage] = useState({});
   const { userid } = useContext(UserContext);
 
   // Fetch user projects
@@ -20,7 +21,9 @@ const HardwareManagement = () => {
         );
         setProjects(res.data.projects);
         if (res.data.projects.length > 0) {
-          setSelectedProjectID(res.data.projects[0].projectId);
+          const initialProjectID = res.data.projects[0].projectId;
+          setSelectedProjectID(initialProjectID);
+          fetchProjectHwUsage(initialProjectID);
         }
       } catch (err) {
         console.error("Error fetching projects:", err);
@@ -30,7 +33,21 @@ const HardwareManagement = () => {
     if (userid) fetchProjects();
   }, [userid]);
 
-  // Fetch hardware sets
+  // Fetch project hardware usage
+  const fetchProjectHwUsage = async (projectId) => {
+    if (!projectId) return;
+    try {
+      const res = await axios.post("http://localhost:5000/get_project_hw_usage", {
+        projectId,
+      });
+      console.log("Project hardware usage:", res.data.hwSets);
+      setProjectHwUsage(res.data.hwSets || {});
+    } catch (err) {
+      console.error("Error fetching project hardware usage:", err);
+    }
+  };
+
+  // Fetch all hardware sets
   useEffect(() => {
     const fetchHwSets = async () => {
       try {
@@ -63,6 +80,12 @@ const HardwareManagement = () => {
     fetchHwSets();
   }, []);
 
+  // Handle project change
+  const handleProjectChange = (projectId) => {
+    setSelectedProjectID(projectId);
+    fetchProjectHwUsage(projectId);
+  };
+
   // Update checkout quantities
   const handleCheckoutChange = (hwName, value) => {
     setCheckoutQuantities((prev) => ({ ...prev, [hwName]: value }));
@@ -73,7 +96,7 @@ const HardwareManagement = () => {
     setCheckinQuantities((prev) => ({ ...prev, [hwName]: value }));
   };
 
-  // Handle checkout submit
+  // Handle checkout
   const handleCheckoutSubmit = async (hwName) => {
     const quantity = parseInt(checkoutQuantities[hwName], 10);
 
@@ -105,6 +128,7 @@ const HardwareManagement = () => {
           )
         );
         setCheckoutQuantities((prev) => ({ ...prev, [hwName]: 0 }));
+        fetchProjectHwUsage(selectedProjectID); // Refresh project usage
       } else {
         alert(res.data.message || "Failed to check out hardware.");
       }
@@ -114,7 +138,7 @@ const HardwareManagement = () => {
     }
   };
 
-  // Handle check-in submit
+  // Handle check-in
   const handleCheckinSubmit = async (hwName) => {
     const quantity = parseInt(checkinQuantities[hwName], 10);
 
@@ -146,6 +170,7 @@ const HardwareManagement = () => {
           )
         );
         setCheckinQuantities((prev) => ({ ...prev, [hwName]: 0 }));
+        fetchProjectHwUsage(selectedProjectID); // Refresh project usage
       } else {
         alert(res.data.message || "Failed to check in hardware.");
       }
@@ -167,12 +192,16 @@ const HardwareManagement = () => {
           id="projectDropdown"
           className="form-select"
           value={selectedProjectID}
-          onChange={(e) => setSelectedProjectID(e.target.value)}
+          onChange={(e) => handleProjectChange(e.target.value)}
         >
           {projects.length === 0 && <option value="">No projects found</option>}
           {projects.map((project) => (
             <option key={project.projectId} value={project.projectId}>
-              {project.projectName}
+              {project.projectName} (
+              {Object.entries(projectHwUsage)
+                .map(([hwName, qty]) => `${hwName}: ${qty}`)
+                .join(", ")}
+              )
             </option>
           ))}
         </select>
