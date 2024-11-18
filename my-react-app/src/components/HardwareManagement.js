@@ -12,7 +12,7 @@ const HardwareManagement = () => {
   const [projectHwUsage, setProjectHwUsage] = useState({});
   const { userid } = useContext(UserContext);
 
-  // Fetch user projects
+  // Fetch user projects and set default project
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -23,83 +23,79 @@ const HardwareManagement = () => {
         setProjects(res.data.projects);
 
         if (res.data.projects.length > 0) {
-          const initialProjectID = res.data.projects[0].projectId;
-          setSelectedProjectID(initialProjectID);
-          fetchProjectHwUsage(initialProjectID);
+          const defaultProjectID = res.data.projects[0].projectId;
+          setSelectedProjectID(defaultProjectID);
+          fetchAllHwSets(defaultProjectID); // Fetch hardware sets for the default project
         }
       } catch (err) {
         console.error("Error fetching projects:", err);
         alert("Error fetching projects!");
       }
     };
+
     if (userid) fetchProjects();
   }, [userid]);
 
+  // Fetch all hardware sets and project-specific usage
+  const fetchAllHwSets = async (projectId) => {
+    try {
+      const res = await axios.post("http://localhost:5000/get_all_hw_names");
+      const hwNames = res.data.hardware_names;
+
+      const hwDetails = await Promise.all(
+        hwNames.map(async (hwName) => {
+          const hwRes = await axios.post("http://localhost:5000/get_hw_info", {
+            hw_name: hwName,
+          });
+          return {
+            hwName: hwRes.data.hwName,
+            capacity: hwRes.data.capacity,
+            availability: hwRes.data.availability,
+          };
+        })
+      );
+
+      setHwSets(hwDetails);
+      fetchProjectHwUsage(projectId, hwDetails); // Fetch and filter hardware sets
+    } catch (err) {
+      console.error("Error fetching hardware sets:", err);
+      alert("Error fetching hardware sets!");
+    }
+  };
+
   // Fetch project-specific hardware usage
-  const fetchProjectHwUsage = async (projectId) => {
+  const fetchProjectHwUsage = async (projectId, hardwareSets = hwSets) => {
     if (!projectId) return;
+
     try {
       const res = await axios.post("http://localhost:5000/get_project_hw_usage", {
         projectId,
       });
-      console.log("Project hardware usage:", res.data.hwSets);
-      setProjectHwUsage(res.data.hwSets || {});
-      filterHwSets(res.data.hwSets || {});
+      const usage = res.data.hwSets || {};
+      setProjectHwUsage(usage);
+
+      // Filter hardware sets based on usage
+      filterHwSets(usage, hardwareSets);
     } catch (err) {
       console.error("Error fetching project hardware usage:", err);
     }
   };
 
-  // Fetch all hardware sets on mount
-  useEffect(() => {
-    const fetchAllHwSets = async () => {
-      try {
-        const res = await axios.post("http://localhost:5000/get_all_hw_names");
-        const hwNames = res.data.hardware_names;
-
-        const hwDetails = [];
-        for (const hwName of hwNames) {
-          const hwRes = await axios.post("http://localhost:5000/get_hw_info", {
-            hw_name: hwName,
-          });
-          hwDetails.push({
-            hwName: hwRes.data.hwName,
-            capacity: hwRes.data.capacity,
-            availability: hwRes.data.availability,
-          });
-        }
-        setHwSets(hwDetails);
-        setCheckoutQuantities(
-          hwDetails.reduce((acc, hw) => ({ ...acc, [hw.hwName]: 0 }), {})
-        );
-        setCheckinQuantities(
-          hwDetails.reduce((acc, hw) => ({ ...acc, [hw.hwName]: 0 }), {})
-        );
-      } catch (err) {
-        console.error("Error fetching hardware sets:", err);
-        alert("Error fetching hardware sets!");
-      }
-    };
-    fetchAllHwSets();
-  }, []);
-
   // Filter hardware sets for the selected project
-  const filterHwSets = (usage) => {
-    const filtered = hwSets
-      .filter((hw) => usage[hw.hwName] !== undefined) // Only include hardware used in this project
+  const filterHwSets = (usage, hardwareSets = hwSets) => {
+    const filtered = hardwareSets
+      .filter((hw) => usage[hw.hwName] !== undefined)
       .map((hw) => ({
         ...hw,
         projectUsage: usage[hw.hwName] || 0,
       }));
     setFilteredHwSets(filtered);
   };
-  
-
 
   // Handle project change
   const handleProjectChange = async (projectId) => {
     setSelectedProjectID(projectId);
-    await fetchProjectHwUsage(projectId);
+    fetchAllHwSets(projectId);
   };
 
   // Update checkout quantities
@@ -118,72 +114,31 @@ const HardwareManagement = () => {
       alert("No project selected. Please select a project first.");
       return;
     }
-  
+
     const quantity = parseInt(checkoutQuantities[hwName], 10);
-  
     if (isNaN(quantity) || quantity <= 0) {
       alert("Please enter a valid checkout quantity!");
       return;
     }
-  
-    const hardware = hwSets.find((hw) => hw.hwName === hwName);
-    if (!hardware) {
-      alert("Hardware set not found. Please refresh the page.");
-      return;
-    }
-  
-    if (quantity > hardware.availability) {
-      alert("Cannot checkout more units than available!");
-      return;
-    }
-  
+
     try {
-      const payload = {
+      const res = await axios.post("http://localhost:5000/check_out", {
         projectID: selectedProjectID,
         hw_name: hwName,
         quantity,
-      };
-  
-      console.log("Sending payload to /check_out:", payload);
-  
-      const res = await axios.post("http://localhost:5000/check_out", payload);
-  
+      });
+
       if (res.data.message === "Hardware checked out successfully!") {
-        alert(`Successfully checked out ${quantity} units of ${hwName}.`);
-  
-        // Update global hardware availability
-        setHwSets((prev) =>
-          prev.map((hw) =>
-            hw.hwName === hwName
-              ? { ...hw, availability: hw.availability - quantity }
-              : hw
-          )
-        );
-  
-        // Reset the checkout quantity for the hardware set
-        setCheckoutQuantities((prev) => ({ ...prev, [hwName]: 0 }));
-  
-        // Fetch updated usage data for the selected project and re-filter hwSets
-        fetchProjectHwUsage(selectedProjectID);
+        alert(`Checked out ${quantity} units of ${hwName}`);
+        fetchAllHwSets(selectedProjectID); // Refresh all hardware sets and filtered sets
       } else {
         alert(res.data.message || "Failed to check out hardware.");
       }
     } catch (err) {
       console.error("Error during checkout:", err);
-  
-      if (err.response) {
-        alert(
-          `Server error: ${err.response.status} - ${err.response.data.message || "Unexpected error"}`
-        );
-      } else if (err.request) {
-        alert("Network error: Unable to connect to the server.");
-      } else {
-        alert(`Error: ${err.message}`);
-      }
+      alert("Error during checkout. Check console logs for details.");
     }
   };
-  
-  
 
   // Handle check-in
   const handleCheckinSubmit = async (hwName) => {
@@ -191,71 +146,31 @@ const HardwareManagement = () => {
       alert("No project selected. Please select a project first.");
       return;
     }
-  
+
     const quantity = parseInt(checkinQuantities[hwName], 10);
-  
     if (isNaN(quantity) || quantity <= 0) {
       alert("Please enter a valid check-in quantity!");
       return;
     }
-  
-    const hardware = hwSets.find((hw) => hw.hwName === hwName);
-    if (!hardware) {
-      alert("Hardware set not found. Please refresh the page.");
-      return;
-    }
-  
-    if (quantity > hardware.capacity - hardware.availability) {
-      alert("Cannot check in more units than originally allocated!");
-      return;
-    }
-  
+
     try {
-      const payload = {
+      const res = await axios.post("http://localhost:5000/check_in", {
         projectID: selectedProjectID,
         hw_name: hwName,
         quantity,
-      };
-  
-      console.log("Sending payload to /check_in:", payload);
-  
-      const res = await axios.post("http://localhost:5000/check_in", payload);
-  
+      });
+
       if (res.data.message === "Hardware checked in successfully!") {
-        alert(`Successfully checked in ${quantity} units of ${hwName}.`);
-  
-        // Update global hardware availability
-        setHwSets((prev) =>
-          prev.map((hw) =>
-            hw.hwName === hwName
-              ? { ...hw, availability: hw.availability + quantity }
-              : hw
-          )
-        );
-  
-        // Reset the check-in quantity for the hardware set
-        setCheckinQuantities((prev) => ({ ...prev, [hwName]: 0 }));
-  
-        // Fetch updated usage data for the selected project and re-filter hwSets
-        fetchProjectHwUsage(selectedProjectID);
+        alert(`Checked in ${quantity} units of ${hwName}`);
+        fetchAllHwSets(selectedProjectID); // Refresh all hardware sets and filtered sets
       } else {
         alert(res.data.message || "Failed to check in hardware.");
       }
     } catch (err) {
       console.error("Error during check-in:", err);
-  
-      if (err.response) {
-        alert(
-          `Server error: ${err.response.status} - ${err.response.data.message || "Unexpected error"}`
-        );
-      } else if (err.request) {
-        alert("Network error: Unable to connect to the server.");
-      } else {
-        alert(`Error: ${err.message}`);
-      }
+      alert("Error during check-in. Check console logs for details.");
     }
   };
-  
 
   return (
     <div className="card p-4">
@@ -268,7 +183,7 @@ const HardwareManagement = () => {
         <select
           id="projectDropdown"
           className="form-select"
-          value={selectedProjectID}
+          value={selectedProjectID || ""}
           onChange={(e) => handleProjectChange(e.target.value)}
         >
           {projects.length === 0 && <option value="">No projects found</option>}
