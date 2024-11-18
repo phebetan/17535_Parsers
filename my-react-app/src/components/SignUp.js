@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './SignUp.css';
 
+const API_URL = process.env.NODE_ENV === 'production'
+  ? '' // Relative path for production
+  : 'http://localhost:5000'; // Local development
+
 const SignUp = () => {
   const [userid, setUserid] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +22,7 @@ const SignUp = () => {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/add_user', {
+      const res = await axios.post(`${API_URL}/add_user`, {
         userid,
         password,
       });

@@ -3,6 +3,10 @@ import axios from 'axios';
 import { UserContext } from '../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = process.env.NODE_ENV === 'production'
+  ? '' // Relative path for production
+  : 'http://localhost:5000'; // Local development
+
 const CreateProject = ({ onProjectSelect }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -16,7 +20,7 @@ const CreateProject = ({ onProjectSelect }) => {
   // Fetch all projects from the backend
   const fetchAllProjects = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/get_all_projects');
+      const res = await axios.get(`${API_URL}/get_all_projects`); // Backticks for template literal
       console.log("Fetched projects:", res.data.projects); // Log to verify structure
       setAllProjects(res.data.projects); // Set all projects with correct structure
     } catch (err) {
@@ -36,7 +40,7 @@ const CreateProject = ({ onProjectSelect }) => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/create_project', {
+      const res = await axios.post(`${API_URL}/create_project`, { // Backticks for template literal
         projectName: name,
         description: description,
         projectId: projectId
@@ -65,7 +69,7 @@ const CreateProject = ({ onProjectSelect }) => {
         projectId: project.projectId
       });  // Log payload data
   
-      const res = await axios.post('http://localhost:5000/join_project', {
+      const res = await axios.post(`${API_URL}/join_project`, { // Backticks for template literal
         userid: userid,
         projectId: project.projectId
       });
@@ -82,7 +86,6 @@ const CreateProject = ({ onProjectSelect }) => {
       alert('Error joining project!');
     }
   };
-  
 
   return (
     <div className="card p-4">
