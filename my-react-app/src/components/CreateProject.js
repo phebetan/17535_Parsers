@@ -3,6 +3,9 @@ import axios from 'axios';
 import { UserContext } from '../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 
+// Set the base URL for API requests
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 const CreateProject = ({ onProjectSelect }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -16,7 +19,7 @@ const CreateProject = ({ onProjectSelect }) => {
   // Fetch all projects from the backend
   const fetchAllProjects = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/get_all_projects');
+      const res = await axios.get(`${API_BASE_URL}/get_all_projects`);
       console.log("Fetched projects:", res.data.projects); // Log to verify structure
       setAllProjects(res.data.projects); // Set all projects with correct structure
     } catch (err) {
@@ -36,10 +39,10 @@ const CreateProject = ({ onProjectSelect }) => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/create_project', {
+      const res = await axios.post(`${API_BASE_URL}/create_project`, {
         projectName: name,
         description: description,
-        projectId: projectId
+        projectId: projectId,
       });
 
       if (res.data.message === 'Project created successfully!') {
@@ -62,18 +65,18 @@ const CreateProject = ({ onProjectSelect }) => {
     try {
       console.log("Sending data to join project:", {
         userid: userid,
-        projectId: project.projectId
-      });  // Log payload data
-  
-      const res = await axios.post('http://localhost:5000/join_project', {
+        projectId: project.projectId,
+      }); // Log payload data
+
+      const res = await axios.post(`${API_BASE_URL}/join_project`, {
         userid: userid,
-        projectId: project.projectId
+        projectId: project.projectId,
       });
-  
+
       if (res.data.message === 'Joined project successfully!') {
         onProjectSelect(project);
         alert(`Successfully joined project: "${project.projectName}"`);
-        //navigate('/project-details');
+        // navigate('/project-details');
       } else {
         alert('Failed to join project.');
       }
@@ -82,7 +85,6 @@ const CreateProject = ({ onProjectSelect }) => {
       alert('Error joining project!');
     }
   };
-  
 
   return (
     <div className="card p-4">

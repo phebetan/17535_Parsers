@@ -4,6 +4,8 @@ import axios from 'axios';
 import { UserContext } from '../contexts/UserContext';
 import './Login.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
 const Login = () => {
   const { setUserid } = useContext(UserContext);
   const [userid, setUserIdInput] = useState('');
@@ -13,7 +15,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/login', {
+      const res = await axios.post(`${API_BASE_URL}/login`, {
         userid,
         password,
       });
