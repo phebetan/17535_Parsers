@@ -2,8 +2,9 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { UserContext } from "../contexts/UserContext";
 
-// Set the base URL for API requests
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === 'production'
+  ? '' // Relative path for production
+  : 'http://localhost:5000'; // Local development
 
 const HardwareManagement = () => {
   const [projects, setProjects] = useState([]);
@@ -19,7 +20,10 @@ const HardwareManagement = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.post(`${API_BASE_URL}/get_user_projects_list`, { userid });
+        const res = await axios.post(
+          `${API_URL}/get_user_projects_list`,
+          { userid }
+        );
         setProjects(res.data.projects);
 
         if (res.data.projects.length > 0) {
@@ -39,12 +43,12 @@ const HardwareManagement = () => {
   // Fetch all hardware sets and project-specific usage
   const fetchAllHwSets = async (projectId) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/get_all_hw_names`);
+      const res = await axios.post(`${API_URL}/get_all_hw_names`);
       const hwNames = res.data.hardware_names;
 
       const hwDetails = await Promise.all(
         hwNames.map(async (hwName) => {
-          const hwRes = await axios.post(`${API_BASE_URL}/get_hw_info`, {
+          const hwRes = await axios.post(`${API_URL}/get_hw_info`, {
             hw_name: hwName,
           });
           return {
@@ -68,7 +72,9 @@ const HardwareManagement = () => {
     if (!projectId) return;
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/get_project_hw_usage`, { projectId });
+      const res = await axios.post(`${API_URL}/get_project_hw_usage`, {
+        projectId,
+      });
       const usage = res.data.hwSets || {};
       setProjectHwUsage(usage);
 
@@ -120,7 +126,7 @@ const HardwareManagement = () => {
     }
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/check_out`, {
+      const res = await axios.post(`${API_URL}/check_out`, {
         projectID: selectedProjectID,
         hw_name: hwName,
         quantity,
@@ -152,7 +158,7 @@ const HardwareManagement = () => {
     }
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/check_in`, {
+      const res = await axios.post(`${API_URL}/check_in`, {
         projectID: selectedProjectID,
         hw_name: hwName,
         quantity,
