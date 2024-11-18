@@ -1,4 +1,7 @@
 # Import necessary libraries and modules
+from dotenv import load_dotenv
+import os
+load_dotenv()
 from flask import Flask, request, jsonify, send_from_directory
 from pymongo import MongoClient
 from flask_cors import CORS
@@ -26,7 +29,7 @@ def get_db():
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_static(path):
-    if path and os.path.exists(os.path.join(app.static_folder, path)):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, "index.html")
 
